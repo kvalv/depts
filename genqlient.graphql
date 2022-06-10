@@ -1,0 +1,29 @@
+query StopNearMe($id: String!) {
+  stopPlace(
+    id: $id
+  ) {
+    id
+    name
+    description
+    wheelchairBoarding
+    transportMode
+    estimatedCalls(
+      numberOfDepartures: 5
+    ) {
+      realtime
+      aimedArrivalTime
+      forBoarding
+      destinationDisplay {
+        frontText
+      }
+      serviceJourney {
+        id
+        line {
+          name
+          transportMode
+          publicCode
+        }
+      }
+    }
+  }
+}
