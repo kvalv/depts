@@ -175,19 +175,25 @@ const (
 
 // __StopNearMeInput is used internally by genqlient
 type __StopNearMeInput struct {
-	Id string `json:"id"`
+	Id    string `json:"id"`
+	Limit int    `json:"limit"`
 }
 
 // GetId returns __StopNearMeInput.Id, and is useful for accessing the field via an interface.
 func (v *__StopNearMeInput) GetId() string { return v.Id }
 
+// GetLimit returns __StopNearMeInput.Limit, and is useful for accessing the field via an interface.
+func (v *__StopNearMeInput) GetLimit() int { return v.Limit }
+
 func StopNearMe(
 	ctx context.Context,
 	client graphql.Client,
 	id string,
+	limit int,
 ) (*StopNearMeResponse, error) {
 	__input := __StopNearMeInput{
-		Id: id,
+		Id:    id,
+		Limit: limit,
 	}
 	var err error
 
@@ -196,14 +202,14 @@ func StopNearMe(
 		ctx,
 		"StopNearMe",
 		`
-query StopNearMe ($id: String!) {
+query StopNearMe ($id: String!, $limit: Int!) {
 	stopPlace(id: $id) {
 		id
 		name
 		description
 		wheelchairBoarding
 		transportMode
-		estimatedCalls(numberOfDepartures: 5) {
+		estimatedCalls(numberOfDepartures: $limit) {
 			realtime
 			aimedArrivalTime
 			forBoarding
