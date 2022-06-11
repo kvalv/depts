@@ -247,7 +247,8 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	log.Info().Bool("debug", CLI.Debug).Msg("HIII")
+
+	InitializeDatabase("test.db")
 
 	err := ctx.Run()
 	if err != nil {

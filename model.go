@@ -42,24 +42,28 @@ func (s *Departure) Print() {
 
 var db *gorm.DB
 
-func GetDbConnection() *gorm.DB {
-	// we'll use a local variable to store the database connection so it's fast to access
-	// it on the second time
-	if db != nil {
-		log.Info().Msg("Reusing existing database instance")
-		return db
-	}
+func InitializeDatabase(url string) {
 	log.Debug().Msg("Connecting to database")
 	config := gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-	db, err := gorm.Open(sqlite.Open("test.db"), &config)
+	ldb, err := gorm.Open(sqlite.Open(url), &config)
 	if err != nil {
 		log.Panic().Msg("failed to connect database")
 	}
 	log.Debug().Msg("created db connection")
 	log.Debug().Msg("applying automigration")
-	err = db.AutoMigrate(&Station{}, &WifiToStationBinding{})
+	err = ldb.AutoMigrate(&Station{}, &WifiToStationBinding{})
 	if err != nil {
 		log.Panic().Err(err).Msg("")
+	}
+    db = ldb
+}
+
+// Returns database connection. Panics if the database is not set up
+func GetDbConnection() *gorm.DB {
+	// we'll use a local variable to store the database connection so it's fast to access
+	// it on the second time
+	if db == nil {
+        log.Fatal().Msg("Database is not initialized. Please call InitializeDatabase first.")
 	}
 	return db
 }
