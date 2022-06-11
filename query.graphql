@@ -1,4 +1,4 @@
-query StopNearMe($id: String!) {
+query StopNearMe($id: String!, $limit: Int!) {
   stopPlace(
     id: $id
   ) {
@@ -8,7 +8,7 @@ query StopNearMe($id: String!) {
     wheelchairBoarding
     transportMode
     estimatedCalls(
-      numberOfDepartures: 5
+      numberOfDepartures: $limit
     ) {
       realtime
       aimedArrivalTime
