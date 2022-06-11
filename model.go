@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Station struct {
@@ -18,7 +19,7 @@ type Station struct {
 
 type WifiToStationBinding struct {
 	gorm.Model
-    Name      string `gorm:"unique"`
+	Name      string  `gorm:"unique"`
 	Station   Station `gorm:"OnDelete:CASCADE"`
 	StationID uint
 }
@@ -49,7 +50,7 @@ func GetDbConnection() *gorm.DB {
 		return db
 	}
 	log.Debug().Msg("Connecting to database")
-	config := gorm.Config{}
+	config := gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 	db, err := gorm.Open(sqlite.Open("test.db"), &config)
 	if err != nil {
 		log.Panic().Msg("failed to connect database")

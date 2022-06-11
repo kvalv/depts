@@ -14,6 +14,7 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/alecthomas/kong"
+	"gorm.io/gorm"
 
 	// log "github.com/sirupsen/logrus"
 	"github.com/rs/zerolog"
@@ -52,7 +53,7 @@ type Context struct {
 }
 
 type ShowCmd struct {
-	Station string `arg:"" help:"station name. If STATION exactly matches a station name, it is used. Otherwise, if the STATION exactly matches the prefix of a station, that station will be used."`
+	Station string `arg:"" default:"-" help:"station name. If STATION exactly matches a station name, it is used. Otherwise, if the STATION exactly matches the prefix of a station, that station will be used."`
 	Limit   int    `help:"Number of stops to display" default:"5"`
 }
 
@@ -78,11 +79,11 @@ type RmCmd struct {
 	ID uint `arg:""`
 }
 
-type AssocNetworkCmd struct {
-    ID int `arg:""`
+type AssociateCmd struct {
+	ID int `arg:""`
 }
 
-func (c *AssocNetworkCmd) Run() error {
+func (c *AssociateCmd) Run() error {
 	db := GetDbConnection()
 	var station Station
 	if err := db.Find(&station, c.ID).Error; err != nil {
@@ -112,7 +113,9 @@ func (c *AssocNetworkCmd) Run() error {
 		log.Error().Err(err)
 		return err
 	}
-	log.Info().Msgf("OK, associated station '%s' to network with ssid '%s' ", station.Name, ssid)
+	msg := fmt.Sprintf("OK, associated station '%s' to network with ssid '%s' ", station.Name, ssid)
+	log.Info().Msg(msg)
+	println(msg)
 
 	return nil
 }
@@ -147,51 +150,63 @@ func (c *RmCmd) Run() error {
 	return nil
 }
 
-var CLI struct {
-	Debug        bool            `help:"Enable debug mode"`
-	Show         ShowCmd         `cmd:"" help:"List info for station"`
-	Add          AddCmd          `cmd:"" help:"add a new station to database"`
-	Rm           RmCmd           `cmd:"" help:"Remove a station by its id"`
-	AssocNetwork AssocNetworkCmd `cmd:""`
+func resolveStationName(s string) (stop Station, err error) {
 
-	Ls LsCmd `cmd:"" help:"List stored stations"`
-}
-
-func (c *ShowCmd) Run() error {
-	log.Info().Str("param:station", c.Station).Int("param:limit", c.Limit).Msg("Run started")
-	var stop Station
-	// var q *gorm.DB
 	db := GetDbConnection()
-	// TODO: do not fail if we don't find it with exact match...
-	var count int64
-	db.Where("name = ?", c.Station).Count(&count)
-	if count == 0 {
-		// let's try inexact...
+
+	if s == "-" {
+		log.Info().Msg("Trying to resolve station name by using network association")
+		ssid, err := GetCurrentNetworkName()
+		if err != nil {
+			return stop, errors.New("Unable to get current network name")
+		}
+		var b WifiToStationBinding
+		err = db.Preload("Station").Where("name = ?", ssid).First(&b).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return stop, fmt.Errorf("No station is bound to network with name '%s'", ssid)
+		} else if err != nil {
+			return stop, err
+		}
+		if b.ID == 0 {
+			return stop, errors.New("expected station id not to be 0, but it was")
+		}
+		log.Debug().Str("ssid", ssid).Int("b", int(b.ID)).Msgf("station = %s having id %d", b.Station.Name, b.Station.ID)
+		return b.Station, nil
+	}
+
+	err = db.Where("name = ?", s).First(&stop).Error
+	if err == nil {
+		return stop, nil
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		// did not find exact match -- let's try see if we can match by prefix
 		var stops []Station
-		db.Where("lower(name) like ?", c.Station+"%").Find(&stops)
+		db.Where("lower(name) like ?", s+"%").Find(&stops)
 		if len(stops) == 0 {
-			log.Error().Msg("Found no rows with that name")
+			err = errors.New("Found no rows with that name")
 		} else if len(stops) > 1 {
 			var names []string
 			for _, s := range stops {
 				names = append(names, s.Name)
 			}
 
-			log.Error().Msgf("Several matching stations found; %s", strings.Join(names, ", "))
+			err = fmt.Errorf("Several matching stations found; %s", strings.Join(names, ", "))
+			log.Error().Err(err).Msg("")
 		} else {
 			stop = stops[0]
+			err = nil
 		}
-		// log.Errorf("AAA %d" , q.RowsAffected)
-	} else {
-		db.Where("name = ?", c.Station).First(&stop)
 	}
+	return stop, err
 
-	// if err := GetDbConnection().Where("name = ?", c.Station).First(&stop).Error; err != nil {
-	// 	log.Error("Got error when fetching station")
-	// 	// return
-	// 	os.Exit(1)
-	// }
-	deps, _ := FetchDepartures(&stop, c.Limit)
+}
+
+func (c *ShowCmd) Run() error {
+	log.Info().Str("param:station", c.Station).Int("param:limit", c.Limit).Msg("Run started")
+	station, err := resolveStationName(c.Station)
+	if err != nil {
+		return err
+	}
+	deps, _ := FetchDepartures(&station, c.Limit)
 	for _, s := range deps {
 		s.Print()
 	}
@@ -208,6 +223,15 @@ func (c *LsCmd) Run() error {
 	return nil
 }
 
+var CLI struct {
+	Debug     bool         `help:"Enable debug mode"`
+	Show      ShowCmd      `cmd:"" help:"List info for station"`
+	Add       AddCmd       `cmd:"" help:"add a new station to database"`
+	Rm        RmCmd        `cmd:"" help:"Remove a station by its id"`
+	Associate AssociateCmd `cmd:""`
+	Ls        LsCmd        `cmd:"" help:"List stored stations"`
+}
+
 func main() {
 
 	// ./depts add Frydenlund            NSR:StopPlace:58405
@@ -216,12 +240,17 @@ func main() {
 
 	ctx := kong.Parse(&CLI)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-    zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	if CLI.Debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Info().Bool("debug", CLI.Debug).Msg("HIII")
 
 	err := ctx.Run()
 	if err != nil {
-        // log.Info().Msg("Hello world")
 		log.Error().Err(err).Msg("")
 	}
 
