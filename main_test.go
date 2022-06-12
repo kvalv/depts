@@ -30,7 +30,7 @@ func TestResolveStationName(t *testing.T) {
 	}{
 		{"Skullerud", "Skullerud", false, "full name"},
 		{"fr", "Frydenlund", false, "prefix name"},
-		{"f", "", true, "ambiguous name"},  // matches 'frydenlund' and 'forskningsparken'
+		{"f", "", true, "ambiguous name"}, // matches 'frydenlund' and 'forskningsparken'
 		{"xxx", "", true, "no match"},
 	}
 

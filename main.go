@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"os/user"
 	"regexp"
 	"strings"
 
@@ -151,6 +152,17 @@ func (c *RmCmd) Run() error {
 	return nil
 }
 
+func resolvePath(s string) (string, error) {
+	if !strings.Contains(s, "~") {
+		return s, nil
+	}
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(s, "~", usr.HomeDir, -1), nil
+}
+
 func resolveStationName(s string) (stop Station, err error) {
 
 	db := GetDbConnection()
@@ -209,7 +221,7 @@ func (c *ShowCmd) Run() error {
 	}
 	deps, _ := FetchDepartures(&station, c.Limit)
 
-    // sort by time...
+	// sort by time...
 	slices.SortFunc(deps, func(a, b Departure) bool { return a.DepartureTime.Unix() < b.DepartureTime.Unix() })
 
 	for _, s := range deps {
@@ -253,9 +265,14 @@ func main() {
 	}
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	InitializeDatabase("test.db")
+	dbPath, err := resolvePath("~/.depts.db")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to find database path")
+	}
+	log.Info().Str("path", dbPath).Msg("set database path")
+	InitializeDatabase(dbPath)
 
-	err := ctx.Run()
+	err = ctx.Run()
 	if err != nil {
 		log.Error().Err(err).Msg("")
 	}

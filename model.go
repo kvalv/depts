@@ -47,7 +47,7 @@ func InitializeDatabase(url string) {
 	config := gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 	ldb, err := gorm.Open(sqlite.Open(url), &config)
 	if err != nil {
-		log.Panic().Msg("failed to connect database")
+		log.Panic().Err(err).Msgf("Unable to connect to database '%s'", url)
 	}
 	log.Debug().Msg("created db connection")
 	log.Debug().Msg("applying automigration")
@@ -55,7 +55,7 @@ func InitializeDatabase(url string) {
 	if err != nil {
 		log.Panic().Err(err).Msg("")
 	}
-    db = ldb
+	db = ldb
 }
 
 // Returns database connection. Panics if the database is not set up
@@ -63,7 +63,7 @@ func GetDbConnection() *gorm.DB {
 	// we'll use a local variable to store the database connection so it's fast to access
 	// it on the second time
 	if db == nil {
-        log.Fatal().Msg("Database is not initialized. Please call InitializeDatabase first.")
+		log.Fatal().Msg("Database is not initialized. Please call InitializeDatabase first.")
 	}
 	return db
 }
