@@ -15,7 +15,7 @@ builds:
       - darwin
 archives:
   - id: depts
-    # format: binary
+    format: binary
     replacements:
       darwin: Darwin
       linux: Linux
