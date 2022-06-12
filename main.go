@@ -14,6 +14,7 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/alecthomas/kong"
+	"golang.org/x/exp/slices"
 	"gorm.io/gorm"
 
 	// log "github.com/sirupsen/logrus"
@@ -207,6 +208,10 @@ func (c *ShowCmd) Run() error {
 		return err
 	}
 	deps, _ := FetchDepartures(&station, c.Limit)
+
+    // sort by time...
+	slices.SortFunc(deps, func(a, b Departure) bool { return a.DepartureTime.Unix() < b.DepartureTime.Unix() })
+
 	for _, s := range deps {
 		s.Print()
 	}
