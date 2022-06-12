@@ -1,7 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
+
+	"github.com/rs/zerolog/log"
 )
 
 var Frydenlund Station = Station{Code: "NSR:StopPlace:58405", Name: "Frydenlund"}
@@ -9,7 +13,10 @@ var Skullerud Station = Station{Code: "NSR:StopPlace:58227", Name: "Skullerud"}
 var Forskningsparken Station = Station{Code: "NSR:StopPlace:59600", Name: "Forskningsparken"}
 
 func setup() {
-	InitializeDatabase(":memory:")
+	err := InitializeDatabase(":memory:")
+	if err != nil {
+		log.Fatal().Err(err).Msg("setup failed")
+	}
 	db := GetDbConnection()
 	db.Create(&Frydenlund)
 	db.Create(&Skullerud)
@@ -48,5 +55,21 @@ func TestResolveStationName(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestCanConnectToDatabase(t *testing.T) {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("Unable to fetch home directory for current user. err='%s'", err.Error())
+	}
+	tmpfile, err := ioutil.TempFile(homedir, "*")
+	if err != nil {
+		t.Fatalf("unable to make temporary file; '%s'", err.Error())
+	}
+	defer os.Remove(tmpfile.Name())
+
+	err = InitializeDatabase(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("Expected database to be set up but received error: '%s'", err.Error())
+	}
 }

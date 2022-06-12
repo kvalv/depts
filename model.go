@@ -42,20 +42,21 @@ func (s *Departure) Print() {
 
 var db *gorm.DB
 
-func InitializeDatabase(url string) {
+func InitializeDatabase(url string) error {
 	log.Debug().Msg("Connecting to database")
 	config := gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 	ldb, err := gorm.Open(sqlite.Open(url), &config)
 	if err != nil {
-		log.Panic().Err(err).Msgf("Unable to connect to database '%s'", url)
+		return err
 	}
 	log.Debug().Msg("created db connection")
 	log.Debug().Msg("applying automigration")
 	err = ldb.AutoMigrate(&Station{}, &WifiToStationBinding{})
 	if err != nil {
-		log.Panic().Err(err).Msg("")
+		return err
 	}
 	db = ldb
+	return nil
 }
 
 // Returns database connection. Panics if the database is not set up

@@ -270,7 +270,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Unable to find database path")
 	}
 	log.Info().Str("path", dbPath).Msg("set database path")
-	InitializeDatabase(dbPath)
+	if err = InitializeDatabase(dbPath); err != nil {
+		log.Fatal().Err(err).Msgf("Unable to set up database connection to '%s'", dbPath)
+	}
 
 	err = ctx.Run()
 	if err != nil {
