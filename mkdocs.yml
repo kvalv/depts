@@ -1,0 +1,7 @@
+site_name: depts
+site_author: Mikael Kvalvær
+repo_name: depts
+edit_uri: edit/master/docs/
+
+theme:
+  name: material

@@ -1,4 +1,4 @@
-.PHONY: test build install
+.PHONY: test build install serve-docs
 
 build:
 	go build
@@ -13,3 +13,6 @@ generated.go: query.graphql
 test:
 	go test
 	
+serve-docs:
+	docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+
