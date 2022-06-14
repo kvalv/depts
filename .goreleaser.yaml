@@ -8,11 +8,11 @@ before:
     # - go generate ./...
 builds:
   - env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - linux
-      # - windows
-      # - darwin
+      - windows
+      - darwin
 archives:
   - id: depts
     format: binary
