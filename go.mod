@@ -6,7 +6,7 @@ require (
 	github.com/Khan/genqlient v0.4.0
 	github.com/alecthomas/kong v0.6.1
 	github.com/glebarez/sqlite v1.4.5
-	github.com/rs/zerolog v1.27.0
+	github.com/rs/zerolog v1.28.0
 	golang.org/x/exp v0.0.0-20220609121020-a51bd0440498
 	gorm.io/gorm v1.23.5
 )
