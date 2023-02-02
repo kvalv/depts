@@ -8,7 +8,7 @@ require (
 	github.com/glebarez/sqlite v1.4.5
 	github.com/rs/zerolog v1.27.0
 	golang.org/x/exp v0.0.0-20220609121020-a51bd0440498
-	gorm.io/gorm v1.23.5
+	gorm.io/gorm v1.24.4
 )
 
 require (
